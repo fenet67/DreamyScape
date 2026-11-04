@@ -1,25 +1,34 @@
 @import "tailwindcss";
-@import "tailwindcss";
 
 @theme {
-    --color-ink: #3b1512;
-  --color-ink-soft: #7a4a45;
-  --color-base: #fff7f6;
+  /* Warm brown + yellow palette */
+  --color-ink: #2c1a10;
+  --color-ink-soft: #7c5f49;
+  --color-base: #fdf8ef;
   --color-surface: #ffffff;
-  --color-line: #f6d9d6;
+  --color-line: #efe1cb;
 
-  --color-violet: #ef4444;
-  --color-violet-deep: #b91c1c;
-  --color-violet-tint: #fde2e1;
-  --color-sky: #ff8a65;
-  --color-sky-tint: #ffe8df;
-  --color-bloom: #f43f5e;
+  --color-gold: #e3a825;
+  --color-gold-deep: #a9740f;
+  --color-gold-tint: #fbebc9;
+  --color-caramel: #b46b2b;
+  --color-caramel-tint: #f7e5d1;
+  --color-clay: #8a5a2f;
+
+  /* Aliases: the rest of the app still refers to these names */
+  --color-violet: #e3a825;
+  --color-violet-deep: #a9740f;
+  --color-violet-tint: #fbebc9;
+  --color-sky: #b46b2b;
+  --color-sky-tint: #f7e5d1;
+  --color-bloom: #8a5a2f;
 
   --font-display: "Fraunces", "Georgia", serif;
   --font-sans: "Plus Jakarta Sans", "Segoe UI", sans-serif;
 
-  --shadow-soft: 0 20px 45px -20px rgba(239, 68, 68, 0.3);
-  --shadow-card: 0 10px 30px -18px rgba(59, 21, 18, 0.2);
+  --shadow-soft: 0 20px 45px -22px rgba(169, 116, 15, 0.45);
+  --shadow-card: 0 12px 34px -20px rgba(44, 26, 16, 0.28);
+  --shadow-lift: 0 30px 60px -30px rgba(44, 26, 16, 0.35);
 }
 
 @layer base {
@@ -31,20 +40,24 @@
     background-color: var(--color-base);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
   }
 
   ::selection {
-    background: var(--color-violet);
-    color: white;
+    background: var(--color-gold);
+    color: var(--color-ink);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-violet);
+    outline: 2px solid var(--color-gold-deep);
     outline-offset: 3px;
     border-radius: 4px;
   }
@@ -67,24 +80,28 @@
   .btn-primary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    background: var(--color-violet);
-    color: white;
-    font-weight: 600;
+    background: linear-gradient(135deg, #efb52f, var(--color-gold) 55%, #cf9418);
+    color: #33200f;
+    font-weight: 700;
     padding: 0.85rem 1.75rem;
     border-radius: 999px;
     box-shadow: var(--shadow-soft);
-    transition: transform 0.15s ease, background-color 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      filter 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: var(--color-violet-deep);
+    filter: brightness(1.05);
     transform: translateY(-2px);
   }
 
   .btn-secondary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     background: transparent;
     color: var(--color-ink);
@@ -92,11 +109,15 @@
     padding: 0.85rem 1.75rem;
     border-radius: 999px;
     border: 1.5px solid var(--color-line);
-    transition: border-color 0.15s ease, transform 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease,
+      background-color 0.15s ease;
   }
 
   .btn-secondary:hover {
-    border-color: var(--color-violet);
+    border-color: var(--color-caramel);
+    background: var(--color-caramel-tint);
     transform: translateY(-2px);
   }
 
@@ -108,14 +129,14 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--color-violet-deep);
-    background: var(--color-violet-tint);
+    color: var(--color-gold-deep);
+    background: var(--color-gold-tint);
     padding: 0.4rem 0.9rem;
     border-radius: 999px;
   }
 
   .gradient-text {
-    background: linear-gradient(100deg, var(--color-violet) 10%, var(--color-sky) 90%);
+    background: linear-gradient(100deg, #d19511 5%, var(--color-caramel) 70%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -124,7 +145,7 @@
   .blob {
     position: absolute;
     border-radius: 999px;
-    filter: blur(60px);
+    filter: blur(70px);
     opacity: 0.55;
     z-index: -1;
     pointer-events: none;
@@ -132,7 +153,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
