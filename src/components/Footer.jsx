@@ -37,7 +37,7 @@ const Footer = () => {
           className="inline-flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-violet transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 19 19" fill="none" aria-hidden="true">
-            <use href="/icons.svg#github-icon" />
+            <use href={`${import.meta.env.BASE_URL}icons.svg#github-icon`} />
           </svg>
           View source
         </a>
