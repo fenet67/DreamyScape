@@ -1,20 +1,26 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HiOutlineSparkles, HiOutlineTrash } from "react-icons/hi2";
-import { useLocalStorage, STORAGE_KEYS } from "../hooks/useLocalStorage";
-
+import {
+  useLocalStorage,
+  STORAGE_KEYS,
+  createId,
+  normalizeDream,
+} from "../hooks/useLocalStorage";
 
 const tilts = ["-rotate-2", "rotate-1", "rotate-2", "-rotate-1"];
 
 const VisionBoard = () => {
   const [dream, setDream] = useState("");
-  const [dreams, setDreams] = useLocalStorage(STORAGE_KEYS.dreams, []);
+  const [dreams, setDreams] = useLocalStorage(STORAGE_KEYS.dreams, [], {
+    normalize: normalizeDream,
+  });
 
   const addDream = (e) => {
     e.preventDefault();
     if (!dream.trim()) return;
 
-    setDreams([...dreams, { id: Date.now(), title: dream.trim() }]);
+    setDreams([...dreams, { id: createId(), title: dream.trim(), createdAt: Date.now() }]);
     setDream("");
   };
 

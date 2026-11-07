@@ -1,29 +1,62 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HiOutlineFlag, HiOutlineCheck, HiOutlineTrash } from "react-icons/hi2";
-import { useLocalStorage, STORAGE_KEYS } from "../hooks/useLocalStorage";
+import {
+  useLocalStorage,
+  STORAGE_KEYS,
+  createId,
+  normalizeDream,
+  normalizeGoal,
+} from "../hooks/useLocalStorage";
 
 const Goals = () => {
   const [title, setTitle] = useState("");
-  const [goals, setGoals] = useLocalStorage(STORAGE_KEYS.goals, []);
+  const [dreamId, setDreamId] = useState("");
+  const [goals, setGoals] = useLocalStorage(STORAGE_KEYS.goals, [], {
+    normalize: normalizeGoal,
+  });
+  const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, [], {
+    normalize: normalizeDream,
+  });
 
   const addGoal = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    setGoals([...goals, { id: Date.now(), title: title.trim(), completed: false }]);
+    setGoals([
+      ...goals,
+      {
+        id: createId(),
+        title: title.trim(),
+        dreamId: dreamId || null,
+        completed: false,
+        completedAt: null,
+        createdAt: Date.now(),
+      },
+    ]);
     setTitle("");
+    setDreamId("");
   };
 
   const toggleComplete = (id) => {
     setGoals(
-      goals.map((goal) => (goal.id === id ? { ...goal, completed: !goal.completed } : goal))
+      goals.map((goal) =>
+        goal.id === id
+          ? {
+              ...goal,
+              completed: !goal.completed,
+              completedAt: goal.completed ? null : Date.now(),
+            }
+          : goal,
+      ),
     );
   };
 
   const deleteGoal = (id) => {
     setGoals(goals.filter((goal) => goal.id !== id));
   };
+
+  const dreamTitle = (id) => dreams.find((dream) => dream.id === id)?.title;
 
   return (
     <div className="container-page py-14 max-w-3xl">
@@ -32,7 +65,7 @@ const Goals = () => {
         The concrete, checkable steps behind your bigger dreams.
       </p>
 
-      <form onSubmit={addGoal} className="flex gap-3 mb-10">
+      <form onSubmit={addGoal} className="flex flex-col sm:flex-row gap-3 mb-10">
         <input
           type="text"
           placeholder="e.g. Finish the AWS certification"
@@ -40,6 +73,21 @@ const Goals = () => {
           onChange={(e) => setTitle(e.target.value)}
           className="border border-line bg-surface p-3.5 rounded-xl flex-1 outline-none focus:border-violet transition-colors"
         />
+        {dreams.length > 0 && (
+          <select
+            value={dreamId}
+            onChange={(e) => setDreamId(e.target.value)}
+            aria-label="Link this goal to a dream"
+            className="border border-line bg-surface p-3.5 rounded-xl text-ink outline-none focus:border-violet transition-colors"
+          >
+            <option value="">No dream</option>
+            {dreams.map((dream) => (
+              <option key={dream.id} value={dream.id}>
+                {dream.title}
+              </option>
+            ))}
+          </select>
+        )}
         <button type="submit" className="btn-primary shrink-0">
           Add goal
         </button>
@@ -80,13 +128,20 @@ const Goals = () => {
                   >
                     <HiOutlineCheck size={15} strokeWidth={3} />
                   </button>
-                  <h3
-                    className={`truncate ${
-                      goal.completed ? "line-through text-ink-soft" : "text-ink"
-                    }`}
-                  >
-                    {goal.title}
-                  </h3>
+                  <div className="min-w-0">
+                    <h3
+                      className={`truncate ${
+                        goal.completed ? "line-through text-ink-soft" : "text-ink"
+                      }`}
+                    >
+                      {goal.title}
+                    </h3>
+                    {dreamTitle(goal.dreamId) && (
+                      <p className="text-xs text-ink-soft truncate mt-0.5">
+                        {dreamTitle(goal.dreamId)}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <button

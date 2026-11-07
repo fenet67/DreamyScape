@@ -7,7 +7,12 @@ import {
   HiOutlineSparkles,
 } from "react-icons/hi2";
 import ProgressBar from "../components/ProgressBar";
-import { useLocalStorage, STORAGE_KEYS } from "../hooks/useLocalStorage";
+import {
+  useLocalStorage,
+  STORAGE_KEYS,
+  normalizeDream,
+  normalizeGoal,
+} from "../hooks/useLocalStorage";
 
 const StatCard = ({ icon: Icon, label, value, delay }) => (
   <motion.div
@@ -25,13 +30,25 @@ const StatCard = ({ icon: Icon, label, value, delay }) => (
 );
 
 const Dashboard = () => {
-  const [goals] = useLocalStorage(STORAGE_KEYS.goals, []);
-  const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, []);
+  const [goals] = useLocalStorage(STORAGE_KEYS.goals, [], { normalize: normalizeGoal });
+  const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, [], { normalize: normalizeDream });
 
   const totalGoals = goals.length;
   const completedGoals = goals.filter((goal) => goal.completed).length;
   const inProgress = totalGoals - completedGoals;
   const progress = totalGoals === 0 ? 0 : Math.round((completedGoals / totalGoals) * 100);
+
+  const dreamProgress = dreams.map((dream) => {
+    const linked = goals.filter((goal) => goal.dreamId === dream.id);
+    const done = linked.filter((goal) => goal.completed).length;
+    return {
+      id: dream.id,
+      title: dream.title,
+      total: linked.length,
+      done,
+      percent: linked.length === 0 ? 0 : Math.round((done / linked.length) * 100),
+    };
+  });
 
   if (totalGoals === 0 && dreams.length === 0) {
     return (
@@ -74,6 +91,25 @@ const Dashboard = () => {
           {completedGoals} of {totalGoals} goal{totalGoals === 1 ? "" : "s"} complete.
         </p>
       </div>
+
+      {dreamProgress.length > 0 && (
+        <div className="card p-7 mt-6">
+          <h2 className="text-xl font-semibold mb-6">Progress by dream</h2>
+          <ul className="space-y-5">
+            {dreamProgress.map((dream) => (
+              <li key={dream.id}>
+                <div className="flex items-baseline justify-between gap-4 mb-2">
+                  <h3 className="font-semibold truncate">{dream.title}</h3>
+                  <span className="text-sm text-ink-soft shrink-0">
+                    {dream.total === 0 ? "No goals yet" : `${dream.done}/${dream.total} goals`}
+                  </span>
+                </div>
+                <ProgressBar progress={dream.percent} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
