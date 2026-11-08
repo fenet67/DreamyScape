@@ -5,6 +5,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineChartBar,
   HiOutlineSparkles,
+  HiOutlineCalendarDays,
 } from "react-icons/hi2";
 import ProgressBar from "../components/ProgressBar";
 import {
@@ -29,6 +30,15 @@ const StatCard = ({ icon: Icon, label, value, delay }) => (
   </motion.div>
 );
 
+const formatDue = (date) =>
+  new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+
+const isOverdue = (date) =>
+  Boolean(date) && new Date(`${date}T23:59:59`) < new Date();
+
 const Dashboard = () => {
   const [goals] = useLocalStorage(STORAGE_KEYS.goals, [], { normalize: normalizeGoal });
   const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, [], { normalize: normalizeDream });
@@ -49,6 +59,11 @@ const Dashboard = () => {
       percent: linked.length === 0 ? 0 : Math.round((done / linked.length) * 100),
     };
   });
+
+  const upcoming = goals
+    .filter((goal) => !goal.completed && goal.dueDate)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .slice(0, 3);
 
   if (totalGoals === 0 && dreams.length === 0) {
     return (
@@ -84,12 +99,44 @@ const Dashboard = () => {
         <StatCard icon={HiOutlineSparkles} label="Dreams" value={dreams.length} delay={0.15} />
       </div>
 
-      <div className="card p-7">
-        <h2 className="text-xl font-semibold mb-6">Overall progress</h2>
-        <ProgressBar progress={progress} />
-        <p className="text-sm text-ink-soft mt-4">
-          {completedGoals} of {totalGoals} goal{totalGoals === 1 ? "" : "s"} complete.
-        </p>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="card p-7">
+          <h2 className="text-xl font-semibold mb-6">Overall progress</h2>
+          <ProgressBar progress={progress} />
+          <p className="text-sm text-ink-soft mt-4">
+            {completedGoals} of {totalGoals} goal{totalGoals === 1 ? "" : "s"} complete.
+          </p>
+        </div>
+
+        {upcoming.length > 0 && (
+          <div className="card p-7">
+            <h2 className="text-xl font-semibold mb-5">Next up</h2>
+            <ul className="space-y-4">
+              {upcoming.map((goal) => {
+                const overdue = isOverdue(goal.dueDate);
+                return (
+                  <li key={goal.id} className="flex items-start gap-3">
+                    <HiOutlineCalendarDays
+                      size={18}
+                      className={`mt-0.5 shrink-0 ${overdue ? "text-bloom" : "text-gold-deep"}`}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate">{goal.title}</p>
+                      <p
+                        className={`text-xs mt-0.5 ${
+                          overdue ? "font-semibold text-bloom" : "text-ink-soft"
+                        }`}
+                      >
+                        Due {formatDue(goal.dueDate)}
+                        {overdue ? " · overdue" : ""}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
 
       {dreamProgress.length > 0 && (

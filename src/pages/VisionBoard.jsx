@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { HiOutlineSparkles, HiOutlineTrash } from "react-icons/hi2";
+import {
+  HiOutlineSparkles,
+  HiOutlineTrash,
+  HiOutlinePencilSquare,
+} from "react-icons/hi2";
+import UndoToast from "../components/UndoToast";
 import {
   useLocalStorage,
   STORAGE_KEYS,
@@ -16,16 +21,71 @@ const VisionBoard = () => {
     normalize: normalizeDream,
   });
 
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [undo, setUndo] = useState(null);
+  const undoTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(undoTimer.current), []);
+
   const addDream = (e) => {
     e.preventDefault();
-    if (!dream.trim()) return;
+    const trimmed = dream.trim();
+    if (!trimmed) return;
 
-    setDreams([...dreams, { id: createId(), title: dream.trim(), createdAt: Date.now() }]);
+    setDreams([...dreams, { id: createId(), title: trimmed, createdAt: Date.now() }]);
     setDream("");
   };
 
   const deleteDream = (id) => {
+    const index = dreams.findIndex((d) => d.id === id);
+    if (index === -1) return;
+
     setDreams(dreams.filter((d) => d.id !== id));
+    clearTimeout(undoTimer.current);
+    setUndo({ dream: dreams[index], index });
+    undoTimer.current = setTimeout(() => setUndo(null), 6000);
+  };
+
+  const undoDelete = () => {
+    if (!undo) return;
+
+    clearTimeout(undoTimer.current);
+    const restored = [...dreams];
+    restored.splice(Math.min(undo.index, restored.length), 0, undo.dream);
+    setDreams(restored);
+    setUndo(null);
+  };
+
+  const dismissUndo = () => {
+    clearTimeout(undoTimer.current);
+    setUndo(null);
+  };
+
+  const startEdit = (d) => {
+    setEditingId(d.id);
+    setEditingTitle(d.title);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingTitle("");
+  };
+
+  const saveEdit = () => {
+    const trimmed = editingTitle.trim();
+    setEditingId(null);
+    setEditingTitle("");
+    if (!trimmed) return;
+    setDreams(dreams.map((d) => (d.id === editingId ? { ...d, title: trimmed } : d)));
+  };
+
+  const onEditKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveEdit();
+    }
+    if (e.key === "Escape") cancelEdit();
   };
 
   return (
@@ -68,21 +128,73 @@ const VisionBoard = () => {
                 className={`card p-6 ${tilts[i % tilts.length]} hover:rotate-0 transition-transform duration-200`}
               >
                 <span className="inline-block h-2.5 w-2.5 rounded-full bg-bloom mb-4" />
-                <h3 className="text-lg font-semibold mb-5 break-words">{d.title}</h3>
 
-                <button
-                  type="button"
-                  onClick={() => deleteDream(d.id)}
-                  className="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-bloom transition-colors"
-                >
-                  <HiOutlineTrash size={16} />
-                  Remove
-                </button>
+                {editingId === d.id ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onKeyDown={onEditKeyDown}
+                      aria-label={`Edit dream: ${d.title}`}
+                      autoFocus
+                      className="w-full border border-line bg-base px-2.5 py-1.5 rounded-lg text-ink outline-none focus:border-violet transition-colors"
+                    />
+                    <div className="flex items-center gap-3 text-sm">
+                      <button
+                        type="button"
+                        onClick={saveEdit}
+                        className="font-semibold text-gold-deep hover:text-clay"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="text-ink-soft hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <h3
+                    onDoubleClick={() => startEdit(d)}
+                    className="text-lg font-semibold mb-5 break-words"
+                  >
+                    {d.title}
+                  </h3>
+                )}
+
+                <div className="flex items-center gap-4 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(d)}
+                    className="inline-flex items-center gap-1.5 text-ink-soft hover:text-gold-deep transition-colors"
+                  >
+                    <HiOutlinePencilSquare size={16} />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteDream(d.id)}
+                    className="inline-flex items-center gap-1.5 text-ink-soft hover:text-bloom transition-colors"
+                  >
+                    <HiOutlineTrash size={16} />
+                    Remove
+                  </button>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
       )}
+
+      <UndoToast
+        message={undo ? `Removed “${undo.dream.title}”` : ""}
+        onUndo={undoDelete}
+        onDismiss={dismissUndo}
+      />
     </div>
   );
 };
