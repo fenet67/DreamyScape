@@ -17,6 +17,7 @@ const Goals = lazy(() => import("./pages/Goals"));
 const VisionBoard = lazy(() => import("./pages/VisionBoard"));
 const Achievements = lazy(() => import("./pages/Achievements"));
 const SignIn = lazy(() => import("./pages/SignIn"));
+const SignUp = lazy(() => import("./pages/SignUp"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const titles = {
@@ -27,6 +28,7 @@ const titles = {
   "/vision-board": "Vision Board · DreamyScape",
   "/achievements": "Achievements · DreamyScape",
   "/signin": "Sign in · DreamyScape",
+  "/signup": "Create your account · DreamyScape",
 };
 
 const RouteEffects = () => {
@@ -62,6 +64,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/signin" element={<SignIn />} />
+              <Route path="/signup" element={<SignUp />} />
               <Route
                 path="/dashboard"
                 element={
