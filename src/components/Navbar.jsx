@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { HiOutlineBars3, HiOutlineXMark } from "react-icons/hi2";
 import Logo from "./Logo";
+import { useAuth } from "../context/auth-context";
 
 const links = [
   { to: "/", label: "Home" },
@@ -20,6 +21,7 @@ const navLinkClass = ({ isActive }) =>
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const { configured, user, signOut } = useAuth();
 
   useEffect(() => {
     const onResize = () => {
@@ -55,9 +57,33 @@ const Navbar = () => {
           ))}
         </ul>
 
-        <NavLink to="/goals" className="hidden md:inline-flex btn-primary !py-2.5 !px-5 text-sm">
-          Add a goal
-        </NavLink>
+        <div className="hidden md:flex items-center gap-4">
+          {user ? (
+            <>
+              <span className="max-w-[10rem] truncate text-sm text-ink-soft" title={user.email}>
+                {user.email}
+              </span>
+              <button
+                type="button"
+                onClick={signOut}
+                className="text-sm font-semibold text-ink-soft hover:text-ink transition-colors"
+              >
+                Sign out
+              </button>
+            </>
+          ) : configured ? (
+            <NavLink
+              to="/signin"
+              className="text-sm font-semibold text-ink-soft hover:text-ink transition-colors"
+            >
+              Sign in
+            </NavLink>
+          ) : null}
+
+          <NavLink to="/goals" className="btn-primary !py-2.5 !px-5 text-sm">
+            Add a goal
+          </NavLink>
+        </div>
 
         <button
           type="button"
@@ -96,6 +122,32 @@ const Navbar = () => {
                   </NavLink>
                 </li>
               ))}
+
+              {user ? (
+                <li className="mt-1 flex items-center justify-between gap-3 border-t border-line pt-3">
+                  <span className="truncate text-sm text-ink-soft">{user.email}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      signOut();
+                    }}
+                    className="text-sm font-semibold text-ink"
+                  >
+                    Sign out
+                  </button>
+                </li>
+              ) : configured ? (
+                <li className="mt-1 border-t border-line pt-3">
+                  <NavLink
+                    to="/signin"
+                    onClick={() => setOpen(false)}
+                    className="block py-2 text-base font-semibold text-ink-soft"
+                  >
+                    Sign in
+                  </NavLink>
+                </li>
+              ) : null}
             </ul>
           </motion.div>
         )}

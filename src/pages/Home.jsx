@@ -105,7 +105,7 @@ const Home = () => {
             </div>
 
             <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-ink-soft">
-              {["No account needed", "Saved on your device", "Free, always"].map(
+              {["Free to start", "Yours, privately", "No setup"].map(
                 (item) => (
                   <li key={item} className="flex items-center gap-2">
                     <HiOutlineCheckCircle
@@ -343,8 +343,8 @@ const Home = () => {
             Your dreams are worth writing down.
           </h2>
           <p className="mx-auto mt-4 mb-9 max-w-xl text-white/70">
-            Start with one board and one goal. It takes under a minute — no
-            account, no setup.
+            Start with one board and one goal. It takes under a minute — sign in
+            with an email and you're in.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link to="/vision-board" className="btn-primary">

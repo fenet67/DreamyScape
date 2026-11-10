@@ -76,8 +76,9 @@ const About = () => {
         <div className="mt-16 card p-8 bg-violet-tint border-none">
           <p className="text-ink-soft">
             DreamyScape is a personal project built to explore React, React
-            Router, and Tailwind CSS — everything is saved locally in your
-            browser, so it's private to your device.
+            Router, Tailwind CSS, and Firebase Auth. Your goals and dreams are
+            saved in your browser under your account, so they stay private to
+            you.
           </p>
         </div>
       </Fade>
