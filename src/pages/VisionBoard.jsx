@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   HiOutlineSparkles,
   HiOutlineTrash,
@@ -91,7 +92,12 @@ const VisionBoard = () => {
   return (
     <div className="container-page py-14">
       <h1 className="font-display text-4xl md:text-5xl font-semibold mb-3">Vision Board</h1>
-      <p className="text-ink-soft mb-10">Pin the things you're working toward.</p>
+      <p className="text-ink-soft mb-10">
+        Pin the things you're working toward.{" "}
+        <Link to="/photos" className="font-semibold text-gold-deep hover:text-caramel">
+          Add photos of them
+        </Link>
+      </p>
 
       <form onSubmit={addDream} className="flex gap-3 mb-12 max-w-2xl">
         <input

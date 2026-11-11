@@ -152,6 +152,16 @@
   }
 }
 
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #ffffff;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -10,6 +10,7 @@ const links = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/goals", label: "Goals" },
   { to: "/vision-board", label: "Vision Board" },
+  { to: "/photos", label: "Photos" },
   { to: "/achievements", label: "Achievements" },
   { to: "/about", label: "About" },
 ];
@@ -32,7 +33,7 @@ const Navbar = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line/80 bg-base/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-line/80 bg-base/80 backdrop-blur-md print:hidden">
       <nav className="container-page flex items-center justify-between py-4">
         <Logo />
 
