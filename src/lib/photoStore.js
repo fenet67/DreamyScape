@@ -114,7 +114,7 @@ export const listPhotos = async (owner) => {
   return records
     .filter((photo) => photo.owner === owner)
     .sort((a, b) => b.createdAt - a.createdAt)
-    .map((photo) => ({ dreamId: null, ...photo }));
+    .map((photo) => ({ dreamId: null, cover: false, ...photo }));
 };
 
 export const addPhotos = async (owner, files) => {
@@ -129,6 +129,7 @@ export const addPhotos = async (owner, files) => {
       createdAt: Date.now() - index,
       liked: false,
       dreamId: null,
+      cover: false,
       ...source,
     });
   }
@@ -144,6 +145,14 @@ export const addPhotos = async (owner, files) => {
 export const savePhoto = (photo) =>
   run("readwrite", (store) => {
     store.put(photo);
+    return null;
+  });
+
+// Saves several photos at once, so choosing a cover can clear the old one in
+// the same transaction.
+export const savePhotos = (photos) =>
+  run("readwrite", (store) => {
+    photos.forEach((photo) => store.put(photo));
     return null;
   });
 

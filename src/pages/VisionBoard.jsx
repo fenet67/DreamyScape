@@ -139,6 +139,18 @@ const VisionBoard = () => {
     return groups;
   }, {});
 
+  // A dream's cover is shown large; the other photos stay as a strip.
+  const photosFor = (dreamId) => {
+    const list = photosByDream[dreamId] ?? [];
+    const cover = list.find((photo) => photo.cover) ?? null;
+
+    return {
+      list,
+      cover,
+      rest: cover ? list.filter((photo) => photo.id !== cover.id) : list,
+    };
+  };
+
   const onEditKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -181,7 +193,10 @@ const VisionBoard = () => {
       ) : (
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-7">
           <AnimatePresence initial={false}>
-            {dreams.map((d, i) => (
+            {dreams.map((d, i) => {
+              const board = photosFor(d.id);
+
+              return (
               <motion.div
                 key={d.id}
                 layout
@@ -230,24 +245,32 @@ const VisionBoard = () => {
                   </h3>
                 )}
 
-                {photosByDream[d.id]?.length > 0 && (
+                {board.list.length > 0 && (
                   <div className="mb-5">
-                    <ul className="grid grid-cols-3 gap-1.5">
-                      {photosByDream[d.id].slice(0, 3).map((photo) => (
-                        <li key={photo.id}>
-                          <img
-                            src={photo.src}
-                            alt={photo.name}
-                            loading="lazy"
-                            className="h-20 w-full rounded-lg object-cover"
-                          />
-                        </li>
-                      ))}
-                    </ul>
+                    {board.cover && (
+                      <img
+                        src={board.cover.src}
+                        alt={board.cover.name}
+                        loading="lazy"
+                        className="mb-1.5 h-32 w-full rounded-xl object-cover"
+                      />
+                    )}
+                    {board.rest.length > 0 && (
+                      <ul className="grid grid-cols-3 gap-1.5">
+                        {board.rest.slice(0, 3).map((photo) => (
+                          <li key={photo.id}>
+                            <img
+                              src={photo.src}
+                              alt={photo.name}
+                              loading="lazy"
+                              className="h-20 w-full rounded-lg object-cover"
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <p className="mt-2 text-xs text-ink-soft">
-                      {photosByDream[d.id].length > 3
-                        ? `+${photosByDream[d.id].length - 3} more · `
-                        : ""}
+                      {board.rest.length > 3 ? `+${board.rest.length - 3} more · ` : ""}
                       <Link
                         to="/photos"
                         className="font-semibold text-gold-deep hover:text-caramel"
@@ -277,7 +300,8 @@ const VisionBoard = () => {
                   </button>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </div>
       )}

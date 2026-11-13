@@ -6,13 +6,15 @@ import {
   HiOutlinePhoto,
   HiOutlinePrinter,
   HiOutlineSparkles,
+  HiOutlineStar,
   HiOutlineTrash,
+  HiStar,
 } from "react-icons/hi2";
 
 import UndoToast from "../components/UndoToast";
 import { useAuth } from "../context/auth-context";
 import { STORAGE_KEYS, normalizeDream, useLocalStorage } from "../hooks/useLocalStorage";
-import { addPhotos, deletePhoto, listPhotos, savePhoto } from "../lib/photoStore";
+import { addPhotos, deletePhoto, listPhotos, savePhoto, savePhotos } from "../lib/photoStore";
 
 const SUGGESTION_SIZE = 6;
 
@@ -99,10 +101,29 @@ const Photos = () => {
   };
 
   const assignDream = async (photo, dreamId) => {
-    const next = { ...photo, dreamId: dreamId || null };
+    // A photo without a dream can't be a cover, so unassigning clears the star.
+    const next = { ...photo, dreamId: dreamId || null, cover: dreamId ? photo.cover : false };
     setPhotos((current) => current.map((item) => (item.id === photo.id ? next : item)));
     try {
       await savePhoto(next);
+    } catch (caught) {
+      setError(caught.message);
+    }
+  };
+
+  // Only one photo can be a dream's cover, so the previous one is cleared too.
+  const setCover = async (photo) => {
+    const next = { ...photo, cover: !photo.cover };
+    const cleared = photos
+      .filter((item) => item.id !== photo.id && item.dreamId === photo.dreamId && item.cover)
+      .map((item) => ({ ...item, cover: false }));
+    const changed = [next, ...cleared];
+
+    setPhotos((current) =>
+      current.map((item) => changed.find((update) => update.id === item.id) ?? item),
+    );
+    try {
+      await savePhotos(changed);
     } catch (caught) {
       setError(caught.message);
     }
@@ -402,12 +423,12 @@ const Photos = () => {
                         )}
                       </div>
 
-                      <div className="border-t border-line px-2.5 py-2">
+                      <div className="flex items-center gap-1.5 border-t border-line px-2.5 py-2">
                         <select
                           value={photo.dreamId ?? ""}
                           onChange={(event) => assignDream(photo, event.target.value)}
                           aria-label={`Dream for ${photo.name}`}
-                          className="w-full rounded-lg border border-line bg-base px-2 py-1.5 text-xs font-semibold text-ink-soft outline-none transition-colors focus:border-violet"
+                          className="min-w-0 flex-1 rounded-lg border border-line bg-base px-2 py-1.5 text-xs font-semibold text-ink-soft outline-none transition-colors focus:border-violet"
                         >
                           <option value="">No dream</option>
                           {dreams.map((dream) => (
@@ -419,6 +440,27 @@ const Photos = () => {
                             <option value={photo.dreamId}>Removed dream</option>
                           )}
                         </select>
+
+                        {photo.dreamId && (
+                          <button
+                            type="button"
+                            onClick={() => setCover(photo)}
+                            aria-pressed={Boolean(photo.cover)}
+                            aria-label={
+                              photo.cover
+                                ? `Remove ${photo.name} as the cover photo`
+                                : `Make ${photo.name} the cover photo`
+                            }
+                            title={photo.cover ? "Cover photo" : "Make cover photo"}
+                            className={`shrink-0 rounded-lg p-2 transition-colors ${
+                              photo.cover
+                                ? "bg-gold text-[#33200f]"
+                                : "border border-line text-ink-soft hover:text-ink"
+                            }`}
+                          >
+                            {photo.cover ? <HiStar size={15} /> : <HiOutlineStar size={15} />}
+                          </button>
+                        )}
                       </div>
                     </li>
                   );
