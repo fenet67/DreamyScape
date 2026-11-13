@@ -113,7 +113,8 @@ export const listPhotos = async (owner) => {
 
   return records
     .filter((photo) => photo.owner === owner)
-    .sort((a, b) => b.createdAt - a.createdAt);
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map((photo) => ({ dreamId: null, ...photo }));
 };
 
 export const addPhotos = async (owner, files) => {
@@ -127,6 +128,7 @@ export const addPhotos = async (owner, files) => {
       name: file.name.replace(/\.[^.]+$/, "") || "Photo",
       createdAt: Date.now() - index,
       liked: false,
+      dreamId: null,
       ...source,
     });
   }
@@ -148,5 +150,19 @@ export const savePhoto = (photo) =>
 export const deletePhoto = (id) =>
   run("readwrite", (store) => {
     store.delete(id);
+    return null;
+  });
+
+// Points a batch of photos at one dream (or at none), used when a dream is
+// removed so no photo is left pointing at something that no longer exists.
+export const setPhotosDream = (ids, dreamId) =>
+  run("readwrite", (store) => {
+    ids.forEach((id) => {
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const photo = request.result;
+        if (photo) store.put({ ...photo, dreamId });
+      };
+    });
     return null;
   });

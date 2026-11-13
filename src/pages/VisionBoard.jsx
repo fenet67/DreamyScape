@@ -7,12 +7,14 @@ import {
   HiOutlinePencilSquare,
 } from "react-icons/hi2";
 import UndoToast from "../components/UndoToast";
+import { useAuth } from "../context/auth-context";
 import {
   useLocalStorage,
   STORAGE_KEYS,
   createId,
   normalizeDream,
 } from "../hooks/useLocalStorage";
+import { listPhotos, setPhotosDream } from "../lib/photoStore";
 
 const tilts = ["-rotate-2", "rotate-1", "rotate-2", "-rotate-1"];
 
@@ -22,12 +24,33 @@ const VisionBoard = () => {
     normalize: normalizeDream,
   });
 
+  const { user } = useAuth();
+  const owner = user?.uid ?? "guest";
+  const [photos, setPhotos] = useState([]);
+
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [undo, setUndo] = useState(null);
   const undoTimer = useRef(null);
 
   useEffect(() => () => clearTimeout(undoTimer.current), []);
+
+  // Linked photos live in IndexedDB; a board without any still works fine.
+  useEffect(() => {
+    let active = true;
+
+    listPhotos(owner)
+      .then((records) => {
+        if (active) setPhotos(records);
+      })
+      .catch((error) => {
+        console.warn("DreamyScape: could not load photos for the board", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [owner]);
 
   const addDream = (e) => {
     e.preventDefault();
@@ -38,24 +61,52 @@ const VisionBoard = () => {
     setDream("");
   };
 
-  const deleteDream = (id) => {
+  const deleteDream = async (id) => {
     const index = dreams.findIndex((d) => d.id === id);
     if (index === -1) return;
 
+    const linked = photos.filter((photo) => photo.dreamId === id).map((photo) => photo.id);
+
     setDreams(dreams.filter((d) => d.id !== id));
     clearTimeout(undoTimer.current);
-    setUndo({ dream: dreams[index], index });
+    setUndo({ dream: dreams[index], index, linked });
     undoTimer.current = setTimeout(() => setUndo(null), 6000);
+
+    // Photos keep their own record; just detach them from the dream that left.
+    if (linked.length === 0) return;
+    setPhotos((current) =>
+      current.map((photo) => (photo.dreamId === id ? { ...photo, dreamId: null } : photo)),
+    );
+    try {
+      await setPhotosDream(linked, null);
+    } catch (error) {
+      console.warn("DreamyScape: could not detach photos from the removed dream", error);
+    }
   };
 
-  const undoDelete = () => {
+  const undoDelete = async () => {
     if (!undo) return;
+
+    const { dream: removed, index, linked } = undo;
 
     clearTimeout(undoTimer.current);
     const restored = [...dreams];
-    restored.splice(Math.min(undo.index, restored.length), 0, undo.dream);
+    restored.splice(Math.min(index, restored.length), 0, removed);
     setDreams(restored);
     setUndo(null);
+
+    // Undo puts the dream back, so its photos go back on it too.
+    if (!linked?.length) return;
+    setPhotos((current) =>
+      current.map((photo) =>
+        linked.includes(photo.id) ? { ...photo, dreamId: removed.id } : photo,
+      ),
+    );
+    try {
+      await setPhotosDream(linked, removed.id);
+    } catch (error) {
+      console.warn("DreamyScape: could not reattach photos to the restored dream", error);
+    }
   };
 
   const dismissUndo = () => {
@@ -80,6 +131,13 @@ const VisionBoard = () => {
     if (!trimmed) return;
     setDreams(dreams.map((d) => (d.id === editingId ? { ...d, title: trimmed } : d)));
   };
+
+  const photosByDream = photos.reduce((groups, photo) => {
+    if (!photo.dreamId) return groups;
+    groups[photo.dreamId] ??= [];
+    groups[photo.dreamId].push(photo);
+    return groups;
+  }, {});
 
   const onEditKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -170,6 +228,34 @@ const VisionBoard = () => {
                   >
                     {d.title}
                   </h3>
+                )}
+
+                {photosByDream[d.id]?.length > 0 && (
+                  <div className="mb-5">
+                    <ul className="grid grid-cols-3 gap-1.5">
+                      {photosByDream[d.id].slice(0, 3).map((photo) => (
+                        <li key={photo.id}>
+                          <img
+                            src={photo.src}
+                            alt={photo.name}
+                            loading="lazy"
+                            className="h-20 w-full rounded-lg object-cover"
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-ink-soft">
+                      {photosByDream[d.id].length > 3
+                        ? `+${photosByDream[d.id].length - 3} more · `
+                        : ""}
+                      <Link
+                        to="/photos"
+                        className="font-semibold text-gold-deep hover:text-caramel"
+                      >
+                        All photos
+                      </Link>
+                    </p>
+                  </div>
                 )}
 
                 <div className="flex items-center gap-4 text-sm">

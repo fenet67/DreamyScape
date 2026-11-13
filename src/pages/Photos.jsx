@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   HiOutlineArrowUpTray,
   HiOutlineHeart,
@@ -10,6 +11,7 @@ import {
 
 import UndoToast from "../components/UndoToast";
 import { useAuth } from "../context/auth-context";
+import { STORAGE_KEYS, normalizeDream, useLocalStorage } from "../hooks/useLocalStorage";
 import { addPhotos, deletePhoto, listPhotos, savePhoto } from "../lib/photoStore";
 
 const SUGGESTION_SIZE = 6;
@@ -22,6 +24,9 @@ const FILTERS = [
 const Photos = () => {
   const { user } = useAuth();
   const owner = user?.uid ?? "guest";
+
+  // Same dreams the vision board shows, so photos can be attached to one.
+  const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, [], { normalize: normalizeDream });
 
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +90,16 @@ const Photos = () => {
 
   const toggleLiked = async (photo) => {
     const next = { ...photo, liked: !photo.liked };
+    setPhotos((current) => current.map((item) => (item.id === photo.id ? next : item)));
+    try {
+      await savePhoto(next);
+    } catch (caught) {
+      setError(caught.message);
+    }
+  };
+
+  const assignDream = async (photo, dreamId) => {
+    const next = { ...photo, dreamId: dreamId || null };
     setPhotos((current) => current.map((item) => (item.id === photo.id ? next : item)));
     try {
       await savePhoto(next);
@@ -158,6 +173,8 @@ const Photos = () => {
     setUndo(null);
   };
 
+  const dreamTitle = (id) => (id ? dreams.find((dream) => dream.id === id)?.title : null);
+
   const visible = filter === "liked" ? photos.filter((photo) => photo.liked) : photos;
   const printed = photos.filter((photo) => selected.includes(photo.id));
   const likedCount = photos.filter((photo) => photo.liked).length;
@@ -222,6 +239,15 @@ const Photos = () => {
             JPG, PNG or WebP. They're resized and saved in this browser — nothing is uploaded.
           </p>
         </div>
+
+        {dreams.length === 0 && (
+          <p className="mt-3 text-xs text-ink-soft">
+            <Link to="/vision-board" className="font-semibold text-gold-deep hover:text-caramel">
+              Pin a dream
+            </Link>{" "}
+            and photos can hang on it — the board will show them.
+          </p>
+        )}
 
         {error && (
           <p
@@ -375,6 +401,25 @@ const Photos = () => {
                           </span>
                         )}
                       </div>
+
+                      <div className="border-t border-line px-2.5 py-2">
+                        <select
+                          value={photo.dreamId ?? ""}
+                          onChange={(event) => assignDream(photo, event.target.value)}
+                          aria-label={`Dream for ${photo.name}`}
+                          className="w-full rounded-lg border border-line bg-base px-2 py-1.5 text-xs font-semibold text-ink-soft outline-none transition-colors focus:border-violet"
+                        >
+                          <option value="">No dream</option>
+                          {dreams.map((dream) => (
+                            <option key={dream.id} value={dream.id}>
+                              {dream.title}
+                            </option>
+                          ))}
+                          {photo.dreamId && !dreamTitle(photo.dreamId) && (
+                            <option value={photo.dreamId}>Removed dream</option>
+                          )}
+                        </select>
+                      </div>
                     </li>
                   );
                 })}
@@ -404,7 +449,10 @@ const Photos = () => {
           {printed.map((photo) => (
             <figure key={photo.id} className="break-inside-avoid">
               <img src={photo.src} alt={photo.name} className="w-full rounded-lg object-cover" />
-              <figcaption className="mt-1.5 text-xs text-ink-soft">{photo.name}</figcaption>
+              <figcaption className="mt-1.5 text-xs text-ink-soft">
+                {photo.name}
+                {dreamTitle(photo.dreamId) ? ` · ${dreamTitle(photo.dreamId)}` : ""}
+              </figcaption>
             </figure>
           ))}
         </div>
