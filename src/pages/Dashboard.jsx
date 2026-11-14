@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -8,6 +9,8 @@ import {
   HiOutlineCalendarDays,
 } from "react-icons/hi2";
 import ProgressBar from "../components/ProgressBar";
+import { useAuth } from "../context/auth-context";
+import { listPhotos } from "../lib/photoStore";
 import {
   useLocalStorage,
   STORAGE_KEYS,
@@ -42,6 +45,32 @@ const isOverdue = (date) =>
 const Dashboard = () => {
   const [goals] = useLocalStorage(STORAGE_KEYS.goals, [], { normalize: normalizeGoal });
   const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, [], { normalize: normalizeDream });
+
+  const { user } = useAuth();
+  const owner = user?.uid ?? "guest";
+  const [photos, setPhotos] = useState([]);
+
+  // Cover photos live in IndexedDB; a dashboard without them looks the same.
+  useEffect(() => {
+    let active = true;
+
+    listPhotos(owner)
+      .then((records) => {
+        if (active) setPhotos(records);
+      })
+      .catch((error) => {
+        console.warn("DreamyScape: could not load cover photos", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [owner]);
+
+  const covers = photos.reduce((map, photo) => {
+    if (photo.dreamId && photo.cover) map[photo.dreamId] = photo;
+    return map;
+  }, {});
 
   const totalGoals = goals.length;
   const completedGoals = goals.filter((goal) => goal.completed).length;
@@ -131,6 +160,14 @@ const Dashboard = () => {
                         {overdue ? " · overdue" : ""}
                       </p>
                     </div>
+                    {covers[goal.dreamId] && (
+                      <img
+                        src={covers[goal.dreamId].src}
+                        alt={covers[goal.dreamId].name}
+                        loading="lazy"
+                        className="ml-auto h-12 w-16 shrink-0 rounded-lg object-cover"
+                      />
+                    )}
                   </li>
                 );
               })}
@@ -144,14 +181,24 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold mb-6">Progress by dream</h2>
           <ul className="space-y-5">
             {dreamProgress.map((dream) => (
-              <li key={dream.id}>
-                <div className="flex items-baseline justify-between gap-4 mb-2">
-                  <h3 className="font-semibold truncate">{dream.title}</h3>
-                  <span className="text-sm text-ink-soft shrink-0">
-                    {dream.total === 0 ? "No goals yet" : `${dream.done}/${dream.total} goals`}
-                  </span>
+              <li key={dream.id} className="flex items-center gap-3">
+                {covers[dream.id] && (
+                  <img
+                    src={covers[dream.id].src}
+                    alt={covers[dream.id].name}
+                    loading="lazy"
+                    className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-4 mb-2">
+                    <h3 className="font-semibold truncate">{dream.title}</h3>
+                    <span className="text-sm text-ink-soft shrink-0">
+                      {dream.total === 0 ? "No goals yet" : `${dream.done}/${dream.total} goals`}
+                    </span>
+                  </div>
+                  <ProgressBar progress={dream.percent} />
                 </div>
-                <ProgressBar progress={dream.percent} />
               </li>
             ))}
           </ul>
