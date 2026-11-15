@@ -7,6 +7,7 @@ import {
   HiOutlineChartBar,
   HiOutlineSparkles,
   HiOutlineCalendarDays,
+  HiOutlinePhoto,
 } from "react-icons/hi2";
 import ProgressBar from "../components/ProgressBar";
 import { useAuth } from "../context/auth-context";
@@ -71,6 +72,14 @@ const Dashboard = () => {
     if (photo.dreamId && photo.cover) map[photo.dreamId] = photo;
     return map;
   }, {});
+
+  const coverPhotos = photos.filter((photo) => photo.dreamId && photo.cover);
+  const coveredDreams = dreams.filter((dream) => covers[dream.id]).length;
+  const unlinkedPhotos = photos.filter((photo) => !photo.dreamId).length;
+  const coverSummary =
+    dreams.length === 0
+      ? "no dreams to attach them to yet"
+      : `${coveredDreams} of ${dreams.length} dream${dreams.length === 1 ? "" : "s"} with a cover`;
 
   const totalGoals = goals.length;
   const completedGoals = goals.filter((goal) => goal.completed).length;
@@ -175,6 +184,39 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {photos.length > 0 && (
+        <div className="card p-7 mt-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold mb-1">Photos</h2>
+              <p className="text-sm text-ink-soft">
+                {photos.length} photo{photos.length === 1 ? "" : "s"} · {coverSummary}
+                {unlinkedPhotos > 0 ? ` · ${unlinkedPhotos} not linked to a dream` : ""}
+              </p>
+            </div>
+            <Link to="/photos" className="btn-secondary shrink-0 !px-4 !py-2 text-sm">
+              <HiOutlinePhoto size={16} aria-hidden="true" />
+              View photos
+            </Link>
+          </div>
+
+          {coverPhotos.length > 0 && (
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {coverPhotos.slice(0, 4).map((photo) => (
+                <li key={photo.id}>
+                  <img
+                    src={photo.src}
+                    alt={photo.name}
+                    loading="lazy"
+                    className="h-14 w-20 rounded-lg object-cover"
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {dreamProgress.length > 0 && (
         <div className="card p-7 mt-6">
