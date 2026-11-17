@@ -34,10 +34,12 @@ const Achievements = () => {
           </div>
           <h2 className="font-semibold text-lg mb-1">No achievements yet</h2>
           <p className="text-ink-soft text-sm mb-6">
-            Complete a goal and it'll show up here.
+            {goals.length === 0
+              ? "Add a goal first — checking one off is what earns a place here."
+              : `You have ${goals.length} goal${goals.length === 1 ? "" : "s"} to finish. Check one off and it lands here.`}
           </p>
           <Link to="/goals" className="btn-secondary">
-            Go to goals
+            {goals.length === 0 ? "Add a goal" : "Go to goals"}
           </Link>
         </div>
       ) : (

@@ -30,6 +30,9 @@ const formatDue = (date) =>
 const isOverdue = (date, completed) =>
   Boolean(date) && !completed && new Date(`${date}T23:59:59`) < new Date();
 
+const isDueBy = (goal, end) =>
+  Boolean(goal.dueDate) && !goal.completed && new Date(`${goal.dueDate}T23:59:59`) <= end;
+
 const Goals = () => {
   const [title, setTitle] = useState("");
   const [dreamId, setDreamId] = useState("");
@@ -43,6 +46,8 @@ const Goals = () => {
   });
 
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [dueSoonOnly, setDueSoonOnly] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [undo, setUndo] = useState(null);
@@ -143,9 +148,29 @@ const Goals = () => {
     completed: goals.filter((goal) => goal.completed).length,
   };
 
-  const visible = goals.filter((goal) =>
-    filter === "active" ? !goal.completed : filter === "completed" ? goal.completed : true,
-  );
+  // "Due this week" looks seven days ahead from today, including today.
+  const weekEnd = new Date();
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  weekEnd.setHours(23, 59, 59, 999);
+  const dueSoonCount = goals.filter((goal) => isDueBy(goal, weekEnd)).length;
+
+  const searchTerm = query.trim().toLowerCase();
+  const filtersActive = filter !== "all" || dueSoonOnly || searchTerm.length > 0;
+
+  // Applied as explicit passes so every filter is honoured on each state change.
+  let visible = goals;
+  if (filter === "active") visible = visible.filter((goal) => !goal.completed);
+  if (filter === "completed") visible = visible.filter((goal) => goal.completed);
+  if (dueSoonOnly) visible = visible.filter((goal) => isDueBy(goal, weekEnd));
+  if (searchTerm) {
+    visible = visible.filter((goal) => goal.title.toLowerCase().includes(searchTerm));
+  }
+
+  const clearFilters = () => {
+    setFilter("all");
+    setQuery("");
+    setDueSoonOnly(false);
+  };
 
   const dreamTitle = (id) => dreams.find((dream) => dream.id === id)?.title;
 
@@ -197,6 +222,32 @@ const Goals = () => {
       </form>
 
       {goals.length > 0 && (
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search goals"
+            aria-label="Search goals"
+            className="w-full border border-line bg-surface p-2.5 rounded-xl text-sm outline-none focus:border-violet transition-colors sm:max-w-xs"
+          />
+          <button
+            type="button"
+            onClick={() => setDueSoonOnly((current) => !current)}
+            aria-pressed={dueSoonOnly}
+            className={`self-start rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+              dueSoonOnly
+                ? "bg-violet text-[#33200f]"
+                : "border border-line text-ink-soft hover:border-caramel hover:text-ink"
+            }`}
+          >
+            Due this week
+            <span className="ml-1.5 opacity-70">{dueSoonCount}</span>
+          </button>
+        </div>
+      )}
+
+      {goals.length > 0 && (
         <div className="flex items-center gap-2 mb-6" role="group" aria-label="Filter goals">
           {FILTERS.map(({ id, label }) => (
             <button
@@ -223,17 +274,24 @@ const Goals = () => {
             <HiOutlineFlag size={22} />
           </div>
           <h2 className="font-semibold text-lg mb-1">No goals yet</h2>
-          <p className="text-ink-soft text-sm">Add your first one above to get started.</p>
+          <p className="text-ink-soft text-sm">
+            Add your first one above — give it a dream and a due date and it'll show up on your
+            dashboard.
+          </p>
         </div>
       ) : visible.length === 0 ? (
         <div className="card p-8 text-center">
           <p className="text-ink-soft mb-4">
-            {filter === "completed"
-              ? "Nothing completed yet — pick a goal and check it off."
-              : "All caught up. No active goals left."}
+            {filtersActive
+              ? "Nothing matches those filters — try a different search or clear them."
+              : "All caught up. No goals left here."}
           </p>
-          <button type="button" onClick={() => setFilter("all")} className="btn-secondary !py-2 !px-5 text-sm">
-            Show all goals
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="btn-secondary !py-2 !px-5 text-sm"
+          >
+            Clear filters
           </button>
         </div>
       ) : (

@@ -43,6 +43,14 @@ const formatDue = (date) =>
 const isOverdue = (date) =>
   Boolean(date) && new Date(`${date}T23:59:59`) < new Date();
 
+const completedOn = (timestamp) =>
+  timestamp
+    ? `Done ${new Date(timestamp).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      })}`
+    : "Done";
+
 const Dashboard = () => {
   const [goals] = useLocalStorage(STORAGE_KEYS.goals, [], { normalize: normalizeGoal });
   const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, [], { normalize: normalizeDream });
@@ -103,6 +111,11 @@ const Dashboard = () => {
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
     .slice(0, 3);
 
+  const recentlyDone = goals
+    .filter((goal) => goal.completed)
+    .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+    .slice(0, 3);
+
   if (totalGoals === 0 && dreams.length === 0) {
     return (
       <div className="container-page py-24 text-center">
@@ -153,30 +166,35 @@ const Dashboard = () => {
               {upcoming.map((goal) => {
                 const overdue = isOverdue(goal.dueDate);
                 return (
-                  <li key={goal.id} className="flex items-start gap-3">
-                    <HiOutlineCalendarDays
-                      size={18}
-                      className={`mt-0.5 shrink-0 ${overdue ? "text-bloom" : "text-gold-deep"}`}
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate">{goal.title}</p>
-                      <p
-                        className={`text-xs mt-0.5 ${
-                          overdue ? "font-semibold text-bloom" : "text-ink-soft"
-                        }`}
-                      >
-                        Due {formatDue(goal.dueDate)}
-                        {overdue ? " · overdue" : ""}
-                      </p>
-                    </div>
-                    {covers[goal.dreamId] && (
-                      <img
-                        src={covers[goal.dreamId].src}
-                        alt={covers[goal.dreamId].name}
-                        loading="lazy"
-                        className="ml-auto h-12 w-16 shrink-0 rounded-lg object-cover"
+                  <li key={goal.id}>
+                    <Link
+                      to="/goals"
+                      className="-mx-2 flex items-start gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-violet-tint/40"
+                    >
+                      <HiOutlineCalendarDays
+                        size={18}
+                        className={`mt-0.5 shrink-0 ${overdue ? "text-bloom" : "text-gold-deep"}`}
                       />
-                    )}
+                      <div className="min-w-0">
+                        <p className="truncate">{goal.title}</p>
+                        <p
+                          className={`text-xs mt-0.5 ${
+                            overdue ? "font-semibold text-bloom" : "text-ink-soft"
+                          }`}
+                        >
+                          Due {formatDue(goal.dueDate)}
+                          {overdue ? " · overdue" : ""}
+                        </p>
+                      </div>
+                      {covers[goal.dreamId] && (
+                        <img
+                          src={covers[goal.dreamId].src}
+                          alt={covers[goal.dreamId].name}
+                          loading="lazy"
+                          className="ml-auto h-12 w-16 shrink-0 rounded-lg object-cover"
+                        />
+                      )}
+                    </Link>
                   </li>
                 );
               })}
@@ -184,6 +202,34 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {recentlyDone.length > 0 && (
+        <div className="card p-7 mt-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+            <h2 className="text-xl font-semibold">Recently completed</h2>
+            <Link
+              to="/achievements"
+              className="text-sm font-semibold text-gold-deep hover:text-caramel transition-colors"
+            >
+              All achievements
+            </Link>
+          </div>
+          <ul className="grid gap-3 sm:grid-cols-3">
+            {recentlyDone.map((goal) => (
+              <li
+                key={goal.id}
+                className="flex items-start gap-2.5 rounded-xl border border-line bg-base/60 px-3 py-2.5"
+              >
+                <HiOutlineCheckCircle size={17} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{goal.title}</p>
+                  <p className="text-xs text-ink-soft mt-0.5">{completedOn(goal.completedAt)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {photos.length > 0 && (
         <div className="card p-7 mt-6">

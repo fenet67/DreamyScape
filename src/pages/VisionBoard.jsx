@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
+  HiOutlinePhoto,
   HiOutlineSparkles,
   HiOutlineTrash,
   HiOutlinePencilSquare,
@@ -279,6 +280,16 @@ const VisionBoard = () => {
                       </Link>
                     </p>
                   </div>
+                )}
+
+                {board.list.length === 0 && (
+                  <Link
+                    to="/photos"
+                    className="mb-5 flex items-center gap-2 rounded-xl border border-dashed border-line px-3 py-2.5 text-xs font-semibold text-ink-soft transition-colors hover:border-caramel hover:text-gold-deep"
+                  >
+                    <HiOutlinePhoto size={16} aria-hidden="true" />
+                    No photos yet — add one
+                  </Link>
                 )}
 
                 <div className="flex items-center gap-4 text-sm">
