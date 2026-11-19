@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   HiOutlinePhoto,
+  HiOutlinePlus,
   HiOutlineSparkles,
   HiOutlineTrash,
   HiOutlinePencilSquare,
@@ -14,6 +15,7 @@ import {
   STORAGE_KEYS,
   createId,
   normalizeDream,
+  normalizeGoal,
 } from "../hooks/useLocalStorage";
 import { listPhotos, setPhotosDream } from "../lib/photoStore";
 
@@ -24,6 +26,10 @@ const VisionBoard = () => {
   const [dreams, setDreams] = useLocalStorage(STORAGE_KEYS.dreams, [], {
     normalize: normalizeDream,
   });
+  // Goals live on the Goals page, but a dream can start one right here.
+  const [goals, setGoals] = useLocalStorage(STORAGE_KEYS.goals, [], {
+    normalize: normalizeGoal,
+  });
 
   const { user } = useAuth();
   const owner = user?.uid ?? "guest";
@@ -31,6 +37,8 @@ const VisionBoard = () => {
 
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [goalForId, setGoalForId] = useState(null);
+  const [goalTitle, setGoalTitle] = useState("");
   const [undo, setUndo] = useState(null);
   const undoTimer = useRef(null);
 
@@ -152,6 +160,41 @@ const VisionBoard = () => {
     };
   };
 
+  const startGoal = (id) => {
+    setEditingId(null);
+    setEditingTitle("");
+    setGoalForId(id);
+    setGoalTitle("");
+  };
+
+  const cancelGoal = () => {
+    setGoalForId(null);
+    setGoalTitle("");
+  };
+
+  // The new goal already belongs to this dream, so no linking step is needed.
+  const addGoal = (e, dreamId) => {
+    e.preventDefault();
+    const trimmed = goalTitle.trim();
+    if (!trimmed) return;
+
+    setGoals([
+      ...goals,
+      {
+        id: createId(),
+        title: trimmed,
+        dreamId,
+        dueDate: null,
+        completed: false,
+        completedAt: null,
+        createdAt: Date.now(),
+      },
+    ]);
+    cancelGoal();
+  };
+
+  const goalCount = (dreamId) => goals.filter((goal) => goal.dreamId === dreamId).length;
+
   const onEditKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -196,6 +239,7 @@ const VisionBoard = () => {
           <AnimatePresence initial={false}>
             {dreams.map((d, i) => {
               const board = photosFor(d.id);
+              const linkedGoals = goalCount(d.id);
 
               return (
               <motion.div
@@ -292,7 +336,36 @@ const VisionBoard = () => {
                   </Link>
                 )}
 
-                <div className="flex items-center gap-4 text-sm">
+                {goalForId === d.id && (
+                  <form onSubmit={(e) => addGoal(e, d.id)} className="mb-4 space-y-2">
+                    <input
+                      type="text"
+                      value={goalTitle}
+                      onChange={(e) => setGoalTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") cancelGoal();
+                      }}
+                      aria-label={`Add a goal for ${d.title}`}
+                      placeholder="e.g. Book the flights"
+                      autoFocus
+                      className="w-full border border-line bg-base px-2.5 py-1.5 rounded-lg text-ink outline-none focus:border-violet transition-colors"
+                    />
+                    <div className="flex items-center gap-3 text-sm">
+                      <button type="submit" className="font-semibold text-gold-deep hover:text-clay">
+                        Add goal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelGoal}
+                        className="text-ink-soft hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                   <button
                     type="button"
                     onClick={() => startEdit(d)}
@@ -309,6 +382,23 @@ const VisionBoard = () => {
                     <HiOutlineTrash size={16} />
                     Remove
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => (goalForId === d.id ? cancelGoal() : startGoal(d.id))}
+                    aria-expanded={goalForId === d.id}
+                    className="inline-flex items-center gap-1.5 text-ink-soft hover:text-gold-deep transition-colors"
+                  >
+                    <HiOutlinePlus size={16} />
+                    Add goal
+                  </button>
+                  {linkedGoals > 0 && (
+                    <Link
+                      to="/goals"
+                      className="ml-auto text-xs font-semibold text-gold-deep hover:text-caramel transition-colors"
+                    >
+                      {linkedGoals} goal{linkedGoals === 1 ? "" : "s"}
+                    </Link>
+                  )}
                 </div>
               </motion.div>
               );
