@@ -7,6 +7,8 @@ import {
   HiOutlinePencilSquare,
 } from "react-icons/hi2";
 import UndoToast from "../components/UndoToast";
+import { useAuth } from "../context/auth-context";
+import { listPhotos } from "../lib/photoStore";
 import {
   useLocalStorage,
   STORAGE_KEYS,
@@ -45,6 +47,32 @@ const Goals = () => {
     normalize: normalizeDream,
   });
 
+  const { user } = useAuth();
+  const owner = user?.uid ?? "guest";
+  const [photos, setPhotos] = useState([]);
+
+  // A goal can show the face of the dream it serves.
+  useEffect(() => {
+    let active = true;
+
+    listPhotos(owner)
+      .then((records) => {
+        if (active) setPhotos(records);
+      })
+      .catch((error) => {
+        console.warn("DreamyScape: could not load dream covers", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [owner]);
+
+  const covers = photos.reduce((map, photo) => {
+    if (photo.dreamId && photo.cover) map[photo.dreamId] = photo;
+    return map;
+  }, {});
+
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [dueSoonOnly, setDueSoonOnly] = useState(false);
@@ -52,8 +80,16 @@ const Goals = () => {
   const [editingTitle, setEditingTitle] = useState("");
   const [undo, setUndo] = useState(null);
   const undoTimer = useRef(null);
+  const [notice, setNotice] = useState("");
+  const noticeTimer = useRef(null);
 
-  useEffect(() => () => clearTimeout(undoTimer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(undoTimer.current);
+      clearTimeout(noticeTimer.current);
+    },
+    [],
+  );
 
   const addGoal = (e) => {
     e.preventDefault();
@@ -78,17 +114,31 @@ const Goals = () => {
   };
 
   const toggleComplete = (id) => {
-    setGoals(
-      goals.map((goal) =>
-        goal.id === id
-          ? {
-              ...goal,
-              completed: !goal.completed,
-              completedAt: goal.completed ? null : Date.now(),
-            }
-          : goal,
-      ),
+    const updated = goals.map((goal) =>
+      goal.id === id
+        ? {
+            ...goal,
+            completed: !goal.completed,
+            completedAt: goal.completed ? null : Date.now(),
+          }
+        : goal,
     );
+    setGoals(updated);
+
+    // Finishing something is the whole point, so say so.
+    const goal = goals.find((item) => item.id === id);
+    if (!goal || goal.completed) return;
+
+    const done = updated.filter((item) => item.completed).length;
+    const remaining = updated.length - done;
+
+    clearTimeout(noticeTimer.current);
+    setNotice(
+      remaining === 0
+        ? `“${goal.title}” done — that's every goal. Well played.`
+        : `“${goal.title}” done. ${done} of ${updated.length} — ${remaining} to go.`,
+    );
+    noticeTimer.current = setTimeout(() => setNotice(""), 4000);
   };
 
   const deleteGoal = (id) => {
@@ -114,6 +164,11 @@ const Goals = () => {
   const dismissUndo = () => {
     clearTimeout(undoTimer.current);
     setUndo(null);
+  };
+
+  const dismissNotice = () => {
+    clearTimeout(noticeTimer.current);
+    setNotice("");
   };
 
   const startEdit = (goal) => {
@@ -366,8 +421,16 @@ const Goals = () => {
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                         {dreamTitle(goal.dreamId) && (
-                          <span className="text-xs text-ink-soft truncate">
-                            {dreamTitle(goal.dreamId)}
+                          <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-ink-soft">
+                            {covers[goal.dreamId] && (
+                              <img
+                                src={covers[goal.dreamId].src}
+                                alt=""
+                                loading="lazy"
+                                className="h-5 w-5 shrink-0 rounded object-cover"
+                              />
+                            )}
+                            <span className="truncate">{dreamTitle(goal.dreamId)}</span>
                           </span>
                         )}
                         {goal.dueDate && (
@@ -412,9 +475,9 @@ const Goals = () => {
       )}
 
       <UndoToast
-        message={undo ? `Deleted “${undo.goal.title}”` : ""}
-        onUndo={undoDelete}
-        onDismiss={dismissUndo}
+        message={undo ? `Deleted “${undo.goal.title}”` : notice}
+        onUndo={undo ? undoDelete : undefined}
+        onDismiss={undo ? dismissUndo : dismissNotice}
       />
     </div>
   );

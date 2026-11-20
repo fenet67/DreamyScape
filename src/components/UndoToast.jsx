@@ -15,14 +15,16 @@ const UndoToast = ({ message, onUndo, onDismiss }) => (
           className="pointer-events-auto flex items-center gap-4 rounded-full border border-line bg-surface px-5 py-3 shadow-lift"
         >
           <span className="text-sm text-ink">{message}</span>
-          <button
-            type="button"
-            onClick={onUndo}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-deep hover:text-clay transition-colors"
-          >
-            <HiOutlineArrowUturnLeft size={15} />
-            Undo
-          </button>
+          {onUndo && (
+            <button
+              type="button"
+              onClick={onUndo}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-deep hover:text-clay transition-colors"
+            >
+              <HiOutlineArrowUturnLeft size={15} />
+              Undo
+            </button>
+          )}
           <button
             type="button"
             onClick={onDismiss}

@@ -8,6 +8,7 @@ import {
   HiOutlineTrash,
   HiOutlinePencilSquare,
 } from "react-icons/hi2";
+import ProgressBar from "../components/ProgressBar";
 import UndoToast from "../components/UndoToast";
 import { useAuth } from "../context/auth-context";
 import {
@@ -193,7 +194,17 @@ const VisionBoard = () => {
     cancelGoal();
   };
 
-  const goalCount = (dreamId) => goals.filter((goal) => goal.dreamId === dreamId).length;
+  // A dream's goals drive the same bar the dashboard uses, next to its photos.
+  const goalStats = (dreamId) => {
+    const linked = goals.filter((goal) => goal.dreamId === dreamId);
+    const done = linked.filter((goal) => goal.completed).length;
+
+    return {
+      total: linked.length,
+      done,
+      percent: linked.length === 0 ? 0 : Math.round((done / linked.length) * 100),
+    };
+  };
 
   const onEditKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -239,7 +250,7 @@ const VisionBoard = () => {
           <AnimatePresence initial={false}>
             {dreams.map((d, i) => {
               const board = photosFor(d.id);
-              const linkedGoals = goalCount(d.id);
+              const stats = goalStats(d.id);
 
               return (
               <motion.div
@@ -288,6 +299,20 @@ const VisionBoard = () => {
                   >
                     {d.title}
                   </h3>
+                )}
+
+                {stats.total > 0 && (
+                  <Link to="/goals" className="group mb-5 block">
+                    <div className="mb-2 flex items-baseline justify-between gap-3 text-xs text-ink-soft">
+                      <span>
+                        {stats.done} of {stats.total} goal{stats.total === 1 ? "" : "s"} done
+                      </span>
+                      <span className="font-semibold text-gold-deep transition-colors group-hover:text-caramel">
+                        View goals
+                      </span>
+                    </div>
+                    <ProgressBar progress={stats.percent} />
+                  </Link>
                 )}
 
                 {board.list.length > 0 && (
@@ -391,14 +416,6 @@ const VisionBoard = () => {
                     <HiOutlinePlus size={16} />
                     Add goal
                   </button>
-                  {linkedGoals > 0 && (
-                    <Link
-                      to="/goals"
-                      className="ml-auto text-xs font-semibold text-gold-deep hover:text-caramel transition-colors"
-                    >
-                      {linkedGoals} goal{linkedGoals === 1 ? "" : "s"}
-                    </Link>
-                  )}
                 </div>
               </motion.div>
               );

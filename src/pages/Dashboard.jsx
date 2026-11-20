@@ -94,6 +94,16 @@ const Dashboard = () => {
   const inProgress = totalGoals - completedGoals;
   const progress = totalGoals === 0 ? 0 : Math.round((completedGoals / totalGoals) * 100);
 
+  // Sits under the progress bar so the numbers come with a next step.
+  const momentum =
+    progress === 100
+      ? "Every goal complete. Time to dream up the next one."
+      : progress >= 50
+        ? `More than halfway there — ${inProgress} goal${inProgress === 1 ? "" : "s"} to go.`
+        : completedGoals === 0
+          ? "The first checkmark is the hardest. Start with whichever goal feels easiest today."
+          : `Off the mark — ${inProgress} goal${inProgress === 1 ? "" : "s"} to go. Small steps count.`;
+
   const dreamProgress = dreams.map((dream) => {
     const linked = goals.filter((goal) => goal.dreamId === dream.id);
     const done = linked.filter((goal) => goal.completed).length;
@@ -157,6 +167,7 @@ const Dashboard = () => {
           <p className="text-sm text-ink-soft mt-4">
             {completedGoals} of {totalGoals} goal{totalGoals === 1 ? "" : "s"} complete.
           </p>
+          <p className="mt-2 text-sm font-semibold text-gold-deep">{momentum}</p>
         </div>
 
         {upcoming.length > 0 && (
