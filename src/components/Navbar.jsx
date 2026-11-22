@@ -11,6 +11,7 @@ const links = [
   { to: "/goals", label: "Goals" },
   { to: "/vision-board", label: "Vision Board" },
   { to: "/photos", label: "Photos" },
+  { to: "/videos", label: "Videos" },
   { to: "/achievements", label: "Achievements" },
   { to: "/about", label: "About" },
 ];

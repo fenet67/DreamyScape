@@ -3,10 +3,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   HiOutlineFlag,
   HiOutlineCheck,
-  HiOutlineFire,
   HiOutlineTrash,
   HiOutlinePencilSquare,
 } from "react-icons/hi2";
+import MomentumStats from "../components/MomentumStats";
 import ProgressBar from "../components/ProgressBar";
 import UndoToast from "../components/UndoToast";
 import { useAuth } from "../context/auth-context";
@@ -231,29 +231,6 @@ const Goals = () => {
 
   const dreamTitle = (id) => dreams.find((dream) => dream.id === id)?.title;
 
-  // Finishing feels better when it adds up: count the week (Mon–Sun) and the run of days.
-  const weekStart = new Date();
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-  const finishedThisWeek = goals.filter(
-    (goal) => goal.completedAt && new Date(goal.completedAt) >= weekStart,
-  ).length;
-
-  const finishedDays = new Set(
-    goals
-      .filter((goal) => goal.completedAt)
-      .map((goal) => new Date(goal.completedAt).toDateString()),
-  );
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  // A streak stays alive until today ends, so it only breaks once a day is missed.
-  if (!finishedDays.has(today.toDateString())) today.setDate(today.getDate() - 1);
-  let streak = 0;
-  while (finishedDays.has(today.toDateString())) {
-    streak += 1;
-    today.setDate(today.getDate() - 1);
-  }
-
   const percent = goals.length === 0 ? 0 : Math.round((counts.completed / goals.length) * 100);
   const remaining = goals.length - counts.completed;
   const momentum =
@@ -323,23 +300,7 @@ const Goals = () => {
             </span>
           </div>
           <ProgressBar progress={percent} />
-
-          {(finishedThisWeek > 0 || streak > 0) && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
-              <span className="inline-flex items-center gap-1.5">
-                <HiOutlineCheck size={16} className="shrink-0 text-gold-deep" aria-hidden="true" />
-                {finishedThisWeek === 0
-                  ? "Nothing finished this week yet"
-                  : `${finishedThisWeek} finished this week`}
-              </span>
-              {streak > 0 && (
-                <span className="inline-flex items-center gap-1.5 text-gold-deep">
-                  <HiOutlineFire size={16} className="shrink-0" aria-hidden="true" />
-                  {streak}-day streak
-                </span>
-              )}
-            </div>
-          )}
+          <MomentumStats goals={goals} />
         </div>
       )}
 

@@ -9,6 +9,7 @@ import {
   HiOutlineCalendarDays,
   HiOutlinePhoto,
 } from "react-icons/hi2";
+import MomentumStats from "../components/MomentumStats";
 import ProgressBar from "../components/ProgressBar";
 import { useAuth } from "../context/auth-context";
 import { listPhotos } from "../lib/photoStore";
@@ -168,6 +169,7 @@ const Dashboard = () => {
             {completedGoals} of {totalGoals} goal{totalGoals === 1 ? "" : "s"} complete.
           </p>
           <p className="mt-2 text-sm font-semibold text-gold-deep">{momentum}</p>
+          <MomentumStats goals={goals} />
         </div>
 
         {upcoming.length > 0 && (

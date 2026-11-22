@@ -116,7 +116,18 @@ export const normalizeDream = (dreams) =>
       ...dream,
     }));
 
+// Videos are stored as links, so only the fields around the link need defaults.
+export const normalizeVideo = (videos) =>
+  videos
+    .filter((video) => video && typeof video === "object" && typeof video.url === "string")
+    .map((video) => ({
+      title: "Video",
+      addedAt: null,
+      ...video,
+    }));
+
 export const STORAGE_KEYS = {
   goals: "dreamyscape-goals",
   dreams: "dreamyscape-dreams",
+  videos: "dreamyscape-videos",
 };
