@@ -1,5 +1,39 @@
 // Goals already store when they were finished, so the week's tally and the run
 // of days both come from the same timestamps — no extra state to keep.
+// One entry per calendar day that has at least one finished goal.
+export const completionDays = (goals) => {
+  const days = new Map();
+
+  goals.forEach((goal) => {
+    if (!goal.completedAt) return;
+    const key = new Date(goal.completedAt).toDateString();
+    days.set(key, (days.get(key) ?? 0) + 1);
+  });
+
+  return days;
+};
+
+// The longest run of consecutive days with a finish, for the record books.
+export const longestStreak = (goals) => {
+  const days = [...completionDays(goals).keys()]
+    .map((key) => new Date(key))
+    .sort((a, b) => a - b);
+
+  let best = 0;
+  let run = 0;
+  let previous = null;
+
+  days.forEach((day) => {
+    // Rounded so daylight-saving days (23 or 25 hours) still count as one.
+    const step = previous ? Math.round((day - previous) / 86400000) : null;
+    run = step === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+    previous = day;
+  });
+
+  return best;
+};
+
 export const streakStats = (goals) => {
   // The week runs Monday to Sunday, and today counts.
   const weekStart = new Date();

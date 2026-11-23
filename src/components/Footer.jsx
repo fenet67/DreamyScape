@@ -25,6 +25,9 @@ const Footer = () => {
           <Link to="/vision-board" className="text-ink-soft hover:text-violet transition-colors">
             Vision Board
           </Link>
+          <Link to="/backup" className="text-ink-soft hover:text-violet transition-colors">
+            Backup
+          </Link>
           <Link to="/about" className="text-ink-soft hover:text-violet transition-colors">
             About
           </Link>

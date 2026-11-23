@@ -76,10 +76,16 @@ const VisionBoard = () => {
     if (index === -1) return;
 
     const linked = photos.filter((photo) => photo.dreamId === id).map((photo) => photo.id);
+    // Goals can't belong to a dream that no longer exists, so they go back to
+    // being unlinked rather than silently losing their label.
+    const linkedGoals = goals.filter((goal) => goal.dreamId === id).map((goal) => goal.id);
 
     setDreams(dreams.filter((d) => d.id !== id));
+    if (linkedGoals.length > 0) {
+      setGoals(goals.map((goal) => (goal.dreamId === id ? { ...goal, dreamId: null } : goal)));
+    }
     clearTimeout(undoTimer.current);
-    setUndo({ dream: dreams[index], index, linked });
+    setUndo({ dream: dreams[index], index, linked, linkedGoals });
     undoTimer.current = setTimeout(() => setUndo(null), 6000);
 
     // Photos keep their own record; just detach them from the dream that left.
@@ -97,13 +103,22 @@ const VisionBoard = () => {
   const undoDelete = async () => {
     if (!undo) return;
 
-    const { dream: removed, index, linked } = undo;
+    const { dream: removed, index, linked, linkedGoals = [] } = undo;
 
     clearTimeout(undoTimer.current);
     const restored = [...dreams];
     restored.splice(Math.min(index, restored.length), 0, removed);
     setDreams(restored);
     setUndo(null);
+
+    // Undo puts the dream back, so the goals that hung on it return to it.
+    if (linkedGoals.length > 0) {
+      setGoals((current) =>
+        current.map((goal) =>
+          linkedGoals.includes(goal.id) ? { ...goal, dreamId: removed.id } : goal,
+        ),
+      );
+    }
 
     // Undo puts the dream back, so its photos go back on it too.
     if (!linked?.length) return;

@@ -42,13 +42,23 @@ const readStored = (key, fallback, normalize, legacyKey) => {
   }
 };
 
+// Fired on every write so other components reading the same key in this tab
+// (including a restored backup) see the change without a page reload.
+export const SYNC_EVENT = "dreamyscape:storage";
+
+// Signed-in accounts get their own copy of a key on this device; guests keep
+// using the plain key, which is also what a first sign-in migrates from.
+export const scopedStorageKey = (key, uid) => (uid ? `${key}:${uid}` : key);
+
+export const announceStorage = (key, items) => {
+  window.dispatchEvent(new CustomEvent(SYNC_EVENT, { detail: { key, items } }));
+};
+
 export function useLocalStorage(key, initialValue = [], options = {}) {
   const { normalize } = options;
 
-  // Signed-in accounts get their own copy of a key on this device; guests keep
-  // using the plain key, which is also what a first sign-in migrates from.
   const { user } = useAuth();
-  const scopedKey = user?.uid ? `${key}:${user.uid}` : key;
+  const scopedKey = scopedStorageKey(key, user?.uid);
   const legacyKey = user?.uid ? key : null;
 
   // The initializer only runs on mount, so normalizing here also migrates data
@@ -61,10 +71,29 @@ export function useLocalStorage(key, initialValue = [], options = {}) {
   useEffect(() => {
     try {
       window.localStorage.setItem(scopedKey, JSON.stringify({ version: VERSION, items: value }));
+      announceStorage(scopedKey, value);
     } catch (error) {
       warn(`could not write "${scopedKey}" to localStorage`, error);
     }
   }, [scopedKey, value]);
+
+  // Another hook instance (or a restore) wrote this key in the same tab. Only
+  // adopt it when the content actually differs, so the write above cannot echo
+  // back and forth between two components forever.
+  useEffect(() => {
+    const onSync = (event) => {
+      const detail = event.detail;
+      if (!detail || detail.key !== scopedKey || !Array.isArray(detail.items)) return;
+
+      setValue((current) => {
+        const next = normalize ? normalize(detail.items) : detail.items;
+        return JSON.stringify(current) === JSON.stringify(next) ? current : next;
+      });
+    };
+
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => window.removeEventListener(SYNC_EVENT, onSync);
+  }, [scopedKey, normalize]);
 
   // Another tab changed this key: adopt its value instead of overwriting it later.
   // Every DreamyScape key holds an array, so clearing one resets to an empty list.
@@ -104,6 +133,7 @@ export const normalizeGoal = (goals) =>
     .map((goal) => ({
       dreamId: null,
       completedAt: goal.completed ? (goal.completedAt ?? null) : null,
+      notes: "",
       ...goal,
     }));
 

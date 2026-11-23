@@ -18,6 +18,7 @@ const VisionBoard = lazy(() => import("./pages/VisionBoard"));
 const Photos = lazy(() => import("./pages/Photos"));
 const Videos = lazy(() => import("./pages/Videos"));
 const Achievements = lazy(() => import("./pages/Achievements"));
+const Backup = lazy(() => import("./pages/Backup"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -31,6 +32,7 @@ const titles = {
   "/photos": "Photos · DreamyScape",
   "/videos": "Videos · DreamyScape",
   "/achievements": "Achievements · DreamyScape",
+  "/backup": "Backup & restore · DreamyScape",
   "/signin": "Sign in · DreamyScape",
   "/signup": "Create your account · DreamyScape",
 };
@@ -114,6 +116,14 @@ function App() {
                 element={
                   <RequireAuth>
                     <Achievements />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/backup"
+                element={
+                  <RequireAuth>
+                    <Backup />
                   </RequireAuth>
                 }
               />

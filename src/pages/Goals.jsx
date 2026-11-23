@@ -78,8 +78,7 @@ const Goals = () => {
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [dueSoonOnly, setDueSoonOnly] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [editingTitle, setEditingTitle] = useState("");
+  const [editing, setEditing] = useState(null);
   const [undo, setUndo] = useState(null);
   const undoTimer = useRef(null);
   const [notice, setNotice] = useState("");
@@ -173,22 +172,41 @@ const Goals = () => {
     setNotice("");
   };
 
-  const startEdit = (goal) => {
-    setEditingId(goal.id);
-    setEditingTitle(goal.title);
-  };
+  // Everything about a goal is editable in place: title, dream, due date, notes.
+  const startEdit = (goal) =>
+    setEditing({
+      id: goal.id,
+      title: goal.title,
+      dreamId: goal.dreamId ?? "",
+      dueDate: goal.dueDate ?? "",
+      notes: goal.notes ?? "",
+    });
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingTitle("");
-  };
+  const cancelEdit = () => setEditing(null);
+
+  const setDraft = (field) => (e) =>
+    setEditing((current) => (current ? { ...current, [field]: e.target.value } : current));
 
   const saveEdit = () => {
-    const trimmed = editingTitle.trim();
-    setEditingId(null);
-    setEditingTitle("");
-    if (!trimmed) return;
-    setGoals(goals.map((goal) => (goal.id === editingId ? { ...goal, title: trimmed } : goal)));
+    if (!editing) return;
+
+    const title = editing.title.trim();
+    if (!title) return;
+
+    setGoals(
+      goals.map((goal) =>
+        goal.id === editing.id
+          ? {
+              ...goal,
+              title,
+              dreamId: editing.dreamId || null,
+              dueDate: editing.dueDate || null,
+              notes: editing.notes.trim(),
+            }
+          : goal,
+      ),
+    );
+    setEditing(null);
   };
 
   const onEditKeyDown = (e) => {
@@ -382,7 +400,7 @@ const Goals = () => {
           <AnimatePresence initial={false}>
             {visible.map((goal) => {
               const overdue = isOverdue(goal.dueDate, goal.completed);
-              const isEditing = editingId === goal.id;
+              const isEditing = editing?.id === goal.id;
 
               return (
                 <motion.li
@@ -411,30 +429,72 @@ const Goals = () => {
 
                     <div className="min-w-0 flex-1">
                       {isEditing ? (
-                        <div className="flex items-center gap-2">
+                        <div className="space-y-2">
                           <input
                             type="text"
-                            value={editingTitle}
-                            onChange={(e) => setEditingTitle(e.target.value)}
+                            value={editing.title}
+                            onChange={setDraft("title")}
                             onKeyDown={onEditKeyDown}
                             aria-label={`Edit goal: ${goal.title}`}
                             autoFocus
                             className="w-full border border-line bg-base px-2.5 py-1.5 rounded-lg text-ink outline-none focus:border-violet transition-colors"
                           />
-                          <button
-                            type="button"
-                            onClick={saveEdit}
-                            className="text-sm font-semibold text-gold-deep hover:text-clay"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="text-sm text-ink-soft hover:text-ink"
-                          >
-                            Cancel
-                          </button>
+
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <select
+                              value={editing.dreamId}
+                              onChange={setDraft("dreamId")}
+                              aria-label="Dream this goal belongs to"
+                              className="min-w-0 flex-1 border border-line bg-base px-2.5 py-1.5 rounded-lg text-sm text-ink outline-none focus:border-violet transition-colors"
+                            >
+                              <option value="">No dream</option>
+                              {dreams.map((dream) => (
+                                <option key={dream.id} value={dream.id}>
+                                  {dream.title}
+                                </option>
+                              ))}
+                              {editing.dreamId && !dreamTitle(editing.dreamId) && (
+                                <option value={editing.dreamId}>Removed dream</option>
+                              )}
+                            </select>
+
+                            <input
+                              type="date"
+                              value={editing.dueDate}
+                              onChange={setDraft("dueDate")}
+                              aria-label="Due date"
+                              className="border border-line bg-base px-2.5 py-1.5 rounded-lg text-sm text-ink outline-none focus:border-violet transition-colors"
+                            />
+                          </div>
+
+                          <textarea
+                            value={editing.notes}
+                            onChange={setDraft("notes")}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") cancelEdit();
+                            }}
+                            rows={2}
+                            placeholder="Notes — the next action, who to ask, why it matters"
+                            aria-label={`Notes for ${goal.title}`}
+                            className="w-full resize-y border border-line bg-base px-2.5 py-1.5 rounded-lg text-sm text-ink outline-none focus:border-violet transition-colors"
+                          />
+
+                          <div className="flex items-center gap-3 text-sm">
+                            <button
+                              type="button"
+                              onClick={saveEdit}
+                              className="font-semibold text-gold-deep hover:text-clay"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              className="text-ink-soft hover:text-ink"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <h3
@@ -472,6 +532,10 @@ const Goals = () => {
                           </span>
                         )}
                       </div>
+
+                      {goal.notes && !isEditing && (
+                        <p className="mt-1.5 line-clamp-2 text-xs text-ink-soft">{goal.notes}</p>
+                      )}
                     </div>
                   </div>
 
