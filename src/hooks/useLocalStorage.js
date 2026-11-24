@@ -152,6 +152,7 @@ export const normalizeVideo = (videos) =>
     .filter((video) => video && typeof video === "object" && typeof video.url === "string")
     .map((video) => ({
       title: "Video",
+      dreamId: null,
       addedAt: null,
       ...video,
     }));

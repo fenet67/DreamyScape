@@ -159,6 +159,9 @@
 
   body {
     background: #ffffff;
+    /* Progress bars and covers use colour to mean something, so keep them. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 

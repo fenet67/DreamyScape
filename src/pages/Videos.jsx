@@ -1,11 +1,19 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { HiOutlineFilm, HiOutlineTrash, HiOutlineVideoCamera } from "react-icons/hi2";
+import {
+  HiOutlineArrowDown,
+  HiOutlineArrowUp,
+  HiOutlineFilm,
+  HiOutlinePencilSquare,
+  HiOutlineTrash,
+  HiOutlineVideoCamera,
+} from "react-icons/hi2";
 
 import UndoToast from "../components/UndoToast";
 import {
   STORAGE_KEYS,
   createId,
+  normalizeDream,
   normalizeVideo,
   useLocalStorage,
 } from "../hooks/useLocalStorage";
@@ -98,7 +106,10 @@ const Videos = () => {
   const [videos, setVideos] = useLocalStorage(STORAGE_KEYS.videos, [], {
     normalize: normalizeVideo,
   });
+  // A video can belong to a dream, the same way photos and goals do.
+  const [dreams] = useLocalStorage(STORAGE_KEYS.dreams, [], { normalize: normalizeDream });
 
+  const [editing, setEditing] = useState(null);
   const [undo, setUndo] = useState(null);
   const undoTimer = useRef(null);
 
@@ -150,6 +161,50 @@ const Videos = () => {
   const dismissUndo = () => {
     clearTimeout(undoTimer.current);
     setUndo(null);
+  };
+
+  const dreamTitle = (id) => (id ? dreams.find((dream) => dream.id === id)?.title : null);
+
+  const startEdit = (video) =>
+    setEditing({ id: video.id, title: video.title, dreamId: video.dreamId ?? "" });
+
+  const cancelEdit = () => setEditing(null);
+
+  const setDraft = (field) => (event) =>
+    setEditing((current) => (current ? { ...current, [field]: event.target.value } : current));
+
+  // Saving a blank title would leave a nameless card, so it's treated as cancel.
+  const saveEdit = () => {
+    if (!editing) return;
+
+    const title = editing.title.trim();
+    if (!title) return;
+
+    setVideos(
+      videos.map((video) =>
+        video.id === editing.id ? { ...video, title, dreamId: editing.dreamId || null } : video,
+      ),
+    );
+    setEditing(null);
+  };
+
+  const onEditKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveEdit();
+    }
+    if (event.key === "Escape") cancelEdit();
+  };
+
+  // The list is the order you see; moving swaps neighbours in place.
+  const move = (id, step) => {
+    const index = videos.findIndex((video) => video.id === id);
+    const target = index + step;
+    if (index === -1 || target < 0 || target >= videos.length) return;
+
+    const next = [...videos];
+    [next[index], next[target]] = [next[target], next[index]];
+    setVideos(next);
   };
 
   return (
@@ -212,8 +267,9 @@ const Videos = () => {
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
           <AnimatePresence initial={false}>
-            {videos.map((item) => {
+            {videos.map((item, index) => {
               const video = parseVideo(item.url);
+              const isEditing = editing?.id === item.id;
 
               return (
                 <motion.li
@@ -233,29 +289,108 @@ const Videos = () => {
                     </div>
                   )}
 
-                  <div className="flex items-start justify-between gap-3 px-3 py-2.5">
-                    <div className="min-w-0">
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block truncate font-semibold hover:text-gold-deep transition-colors"
-                      >
-                        {item.title}
-                      </a>
-                      <p className="mt-0.5 text-xs text-ink-soft">
-                        {video ? sourceLabel(video.kind) : "Unknown source"}
-                      </p>
-                    </div>
+                  <div className="px-3 py-2.5">
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editing.title}
+                          onChange={setDraft("title")}
+                          onKeyDown={onEditKeyDown}
+                          aria-label={`Edit video title: ${item.title}`}
+                          autoFocus
+                          className="w-full border border-line bg-base px-2.5 py-1.5 rounded-lg text-sm text-ink outline-none focus:border-violet transition-colors"
+                        />
 
-                    <button
-                      type="button"
-                      onClick={() => remove(item)}
-                      aria-label={`Delete video: ${item.title}`}
-                      className="shrink-0 p-2 text-ink-soft hover:text-bloom transition-colors"
-                    >
-                      <HiOutlineTrash size={18} />
-                    </button>
+                        <select
+                          value={editing.dreamId}
+                          onChange={setDraft("dreamId")}
+                          aria-label="Dream this video belongs to"
+                          className="w-full border border-line bg-base px-2.5 py-1.5 rounded-lg text-sm text-ink outline-none focus:border-violet transition-colors"
+                        >
+                          <option value="">No dream</option>
+                          {dreams.map((dream) => (
+                            <option key={dream.id} value={dream.id}>
+                              {dream.title}
+                            </option>
+                          ))}
+                          {editing.dreamId && !dreamTitle(editing.dreamId) && (
+                            <option value={editing.dreamId}>Removed dream</option>
+                          )}
+                        </select>
+
+                        <div className="flex items-center gap-3 text-sm">
+                          <button
+                            type="button"
+                            onClick={saveEdit}
+                            className="font-semibold text-gold-deep hover:text-clay"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="text-ink-soft hover:text-ink"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block truncate font-semibold hover:text-gold-deep transition-colors"
+                          >
+                            {item.title}
+                          </a>
+                          <p className="mt-0.5 truncate text-xs text-ink-soft">
+                            {video ? sourceLabel(video.kind) : "Unknown source"}
+                            {dreamTitle(item.dreamId) ? ` · ${dreamTitle(item.dreamId)}` : ""}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => move(item.id, -1)}
+                            disabled={index === 0}
+                            aria-label={`Move ${item.title} earlier`}
+                            className="p-2 text-ink-soft hover:text-gold-deep transition-colors disabled:opacity-30 disabled:hover:text-ink-soft"
+                          >
+                            <HiOutlineArrowUp size={17} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => move(item.id, 1)}
+                            disabled={index === videos.length - 1}
+                            aria-label={`Move ${item.title} later`}
+                            className="p-2 text-ink-soft hover:text-gold-deep transition-colors disabled:opacity-30 disabled:hover:text-ink-soft"
+                          >
+                            <HiOutlineArrowDown size={17} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(item)}
+                            aria-label={`Edit video: ${item.title}`}
+                            className="p-2 text-ink-soft hover:text-gold-deep transition-colors"
+                          >
+                            <HiOutlinePencilSquare size={17} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(item)}
+                            aria-label={`Delete video: ${item.title}`}
+                            className="p-2 text-ink-soft hover:text-bloom transition-colors"
+                          >
+                            <HiOutlineTrash size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </motion.li>
               );

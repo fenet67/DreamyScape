@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import {
   HiOutlineFlag,
   HiOutlineCheck,
@@ -75,9 +76,28 @@ const Goals = () => {
     return map;
   }, {});
 
-  const [filter, setFilter] = useState("all");
-  const [query, setQuery] = useState("");
-  const [dueSoonOnly, setDueSoonOnly] = useState(false);
+  // Filters live in the query string, so a filtered view survives a reload and
+  // can be bookmarked or shared: /goals?status=active&due=week&q=aws
+  const [params, setParams] = useSearchParams();
+  const statusParam = params.get("status");
+  const filter = FILTERS.some((item) => item.id === statusParam) ? statusParam : "all";
+  const query = params.get("q") ?? "";
+  const dueSoonOnly = params.get("due") === "week";
+
+  // Empty and "all" values leave the URL, so the plain /goals link stays clean.
+  const updateParams = (changes) => {
+    const next = new URLSearchParams(params);
+    Object.entries(changes).forEach(([key, value]) => {
+      if (!value || value === "all") next.delete(key);
+      else next.set(key, value);
+    });
+    // Typing in search must not fill the back button with one entry per key.
+    setParams(next, { replace: true });
+  };
+
+  const setFilter = (id) => updateParams({ status: id });
+  const setQuery = (value) => updateParams({ q: value });
+  const toggleDueSoon = () => updateParams({ due: dueSoonOnly ? "" : "week" });
   const [editing, setEditing] = useState(null);
   const [undo, setUndo] = useState(null);
   const undoTimer = useRef(null);
@@ -241,11 +261,7 @@ const Goals = () => {
     visible = visible.filter((goal) => goal.title.toLowerCase().includes(searchTerm));
   }
 
-  const clearFilters = () => {
-    setFilter("all");
-    setQuery("");
-    setDueSoonOnly(false);
-  };
+  const clearFilters = () => setParams(new URLSearchParams(), { replace: true });
 
   const dreamTitle = (id) => dreams.find((dream) => dream.id === id)?.title;
 
@@ -334,7 +350,7 @@ const Goals = () => {
           />
           <button
             type="button"
-            onClick={() => setDueSoonOnly((current) => !current)}
+            onClick={toggleDueSoon}
             aria-pressed={dueSoonOnly}
             className={`self-start rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
               dueSoonOnly

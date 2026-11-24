@@ -7,6 +7,7 @@ import {
   HiOutlineSparkles,
   HiOutlineTrash,
   HiOutlinePencilSquare,
+  HiOutlinePrinter,
 } from "react-icons/hi2";
 import ProgressBar from "../components/ProgressBar";
 import UndoToast from "../components/UndoToast";
@@ -41,6 +42,7 @@ const VisionBoard = () => {
   const [goalForId, setGoalForId] = useState(null);
   const [goalTitle, setGoalTitle] = useState("");
   const [undo, setUndo] = useState(null);
+  const [printedOn] = useState(() => new Date().toLocaleDateString());
   const undoTimer = useRef(null);
 
   useEffect(() => () => clearTimeout(undoTimer.current), []);
@@ -230,14 +232,30 @@ const VisionBoard = () => {
   };
 
   return (
-    <div className="container-page py-14">
-      <h1 className="font-display text-4xl md:text-5xl font-semibold mb-3">Vision Board</h1>
-      <p className="text-ink-soft mb-10">
-        Pin the things you're working toward.{" "}
-        <Link to="/photos" className="font-semibold text-gold-deep hover:text-caramel">
-          Add photos of them
-        </Link>
-      </p>
+    <>
+    <div className="container-page py-14 print:hidden">
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl md:text-5xl font-semibold mb-3">Vision Board</h1>
+          <p className="text-ink-soft">
+            Pin the things you're working toward.{" "}
+            <Link to="/photos" className="font-semibold text-gold-deep hover:text-caramel">
+              Add photos of them
+            </Link>
+          </p>
+        </div>
+
+        {dreams.length > 0 && (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="btn-secondary shrink-0 !px-4 !py-2 text-sm"
+          >
+            <HiOutlinePrinter size={16} aria-hidden="true" />
+            Print board
+          </button>
+        )}
+      </div>
 
       <form onSubmit={addDream} className="flex gap-3 mb-12 max-w-2xl">
         <input
@@ -445,6 +463,60 @@ const VisionBoard = () => {
         onDismiss={dismissUndo}
       />
     </div>
+
+    {/* Only rendered on paper, via the print media query. */}
+    <div className="hidden print:block">
+      <header className="mb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-deep">DreamyScape</p>
+        <h1 className="mt-2 font-display text-2xl font-semibold">My vision board</h1>
+        <p className="mt-1 text-xs text-ink-soft">
+          {dreams.length} dream{dreams.length === 1 ? "" : "s"} · {printedOn}
+        </p>
+      </header>
+
+      <div className="grid grid-cols-2 gap-5">
+        {dreams.map((d) => {
+          const board = photosFor(d.id);
+          const stats = goalStats(d.id);
+          const linked = goals.filter((goal) => goal.dreamId === d.id);
+          const shot = board.cover ?? board.rest[0] ?? null;
+
+          return (
+            <section key={d.id} className="break-inside-avoid rounded-xl border border-line p-4">
+              {shot && (
+                <img
+                  src={shot.src}
+                  alt={shot.name}
+                  className="mb-3 h-36 w-full rounded-lg object-cover"
+                />
+              )}
+
+              <h2 className="font-display text-lg font-semibold">{d.title}</h2>
+
+              {stats.total > 0 && (
+                <div className="mt-1.5">
+                  <p className="mb-1 text-xs text-ink-soft">
+                    {stats.done} of {stats.total} goal{stats.total === 1 ? "" : "s"} done
+                  </p>
+                  <ProgressBar progress={stats.percent} />
+                </div>
+              )}
+
+              {linked.length > 0 && (
+                <ul className="mt-2 space-y-0.5 text-xs text-ink-soft">
+                  {linked.map((goal) => (
+                    <li key={goal.id} className={goal.completed ? "line-through" : ""}>
+                      {goal.completed ? "✓" : "•"} {goal.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </div>
+    </>
   );
 };
 
