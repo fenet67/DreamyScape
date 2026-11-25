@@ -125,6 +125,18 @@ const Navbar = () => {
                 </li>
               ))}
 
+              {/* The same call to action the desktop bar carries, so a phone
+                  never has to open Goals just to find the button. */}
+              <li className="mt-1 border-t border-line pt-3">
+                <NavLink
+                  to="/goals"
+                  onClick={() => setOpen(false)}
+                  className="btn-primary w-full !py-2.5 text-sm"
+                >
+                  Add a goal
+                </NavLink>
+              </li>
+
               {user ? (
                 <li className="mt-1 flex items-center justify-between gap-3 border-t border-line pt-3">
                   <span className="truncate text-sm text-ink-soft">{user.email}</span>

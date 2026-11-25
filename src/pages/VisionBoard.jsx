@@ -8,6 +8,7 @@ import {
   HiOutlineTrash,
   HiOutlinePencilSquare,
   HiOutlinePrinter,
+  HiOutlineVideoCamera,
 } from "react-icons/hi2";
 import ProgressBar from "../components/ProgressBar";
 import UndoToast from "../components/UndoToast";
@@ -18,6 +19,7 @@ import {
   createId,
   normalizeDream,
   normalizeGoal,
+  normalizeVideo,
 } from "../hooks/useLocalStorage";
 import { listPhotos, setPhotosDream } from "../lib/photoStore";
 
@@ -31,6 +33,11 @@ const VisionBoard = () => {
   // Goals live on the Goals page, but a dream can start one right here.
   const [goals, setGoals] = useLocalStorage(STORAGE_KEYS.goals, [], {
     normalize: normalizeGoal,
+  });
+  // Videos are added on their own page but can point at a dream, so a card can
+  // offer the thing you saved to watch about it.
+  const [videos] = useLocalStorage(STORAGE_KEYS.videos, [], {
+    normalize: normalizeVideo,
   });
 
   const { user } = useAuth();
@@ -284,6 +291,7 @@ const VisionBoard = () => {
             {dreams.map((d, i) => {
               const board = photosFor(d.id);
               const stats = goalStats(d.id);
+              const linkedVideos = videos.filter((video) => video.dreamId === d.id);
 
               return (
               <motion.div
@@ -392,6 +400,28 @@ const VisionBoard = () => {
                     <HiOutlinePhoto size={16} aria-hidden="true" />
                     No photos yet — add one
                   </Link>
+                )}
+
+                {linkedVideos.length > 0 && (
+                  <ul className="mb-5 space-y-1">
+                    {linkedVideos.map((video) => (
+                      <li key={video.id}>
+                        <a
+                          href={video.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft transition-colors hover:text-gold-deep"
+                        >
+                          <HiOutlineVideoCamera
+                            size={14}
+                            aria-hidden="true"
+                            className="shrink-0 text-gold-deep"
+                          />
+                          <span className="min-w-0 truncate">Watch {video.title}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 )}
 
                 {goalForId === d.id && (
